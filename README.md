@@ -2,11 +2,15 @@
 
 ## Function Calling
 
+[OpenAI function calling docs](https://platform.openai.com/docs/guides/function-calling)
+
 Function calling is a general concept where an AI assistant can invoke predefined functions or tools to perform specific tasks. These functions can be anything from searching files to making API calls, and they run directly in the environment where the assistant is operating.
 
 -> Functions are part of your LLM application codebase.
 
 ## MCP (Mission Control Protocol) Server
+
+[MCP docs](https://modelcontextprotocol.io/introduction)
 
 MCP Server is a specialized server that acts as a bridge between AI applications (agents/assistants) and third-party services (tools). The way MCP servers expose functions to LLMs is standardized, and LLMs can interact with MCP servers either through HTTP requests or by executing CLI commands (like Node.js scripts). While function calling happens directly in the assistant's environment, MCP Server manages the communication, authentication, and execution of commands with external services in a controlled and secure manner.
 
