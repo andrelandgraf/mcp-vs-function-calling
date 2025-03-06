@@ -1,5 +1,9 @@
 # Function Calling vs MCP Server
 
+MCP (Model Context Protocol) allows LLMs to interact with external services. This repository contains two implementations of how to integrate [Home Assistant](https://www.home-assistant.io/) controls into an LLM application. The first one is using [OpenAI function calling](https://platform.openai.com/docs/guides/function-calling), embedding the functions inside an LLM application, and the second one is using a [MCP server](https://modelcontextprotocol.io/introduction) that can be integrated into any LLM application.
+
+You can watch me walk through this repository on YouTube: [MCP vs. Function Calling - Controlling my office lights with Cursor](https://www.youtube.com/watch?v=DCp3SkPPq2A)
+
 ## Function Calling
 
 [OpenAI function calling docs](https://platform.openai.com/docs/guides/function-calling)
@@ -8,13 +12,13 @@ Function calling is a general concept where an AI assistant can invoke predefine
 
 -> Functions are part of your LLM application codebase.
 
-## MCP (Mission Control Protocol) Server
+## MCP Server
 
 [MCP docs](https://modelcontextprotocol.io/introduction)
 
 MCP Server is a specialized server that acts as a bridge between AI applications (agents/assistants) and third-party services (tools). The way MCP servers expose functions to LLMs is standardized, and LLMs can interact with MCP servers either through HTTP requests or by executing CLI commands (like Node.js scripts). While function calling happens directly in the assistant's environment, MCP Server manages the communication, authentication, and execution of commands with external services in a controlled and secure manner.
 
--> MCP servers are standalone applications that the LLM can interact with.
+-> MCP servers are standalone applications that any LLM can interact with that implements the MCP protocol.
 
 ## Implementation Examples
 
