@@ -1,13 +1,9 @@
-import { setTimeout } from "node:timers";
 import {
-  calcTemperatureValue,
   EntityTypes,
   getBrightnessPercentage,
   getBrightnessValue,
   getLightState,
-  getNumericSensorState,
   getRBGColor,
-  getTemperatureUnitOfMeasurement,
   type Light,
   type HomeAssistantData,
 } from "./data";
@@ -18,7 +14,6 @@ import {
   type HassEntityState,
   HomeAssistantWebSocketClient,
 } from "../hass-ws-client/client";
-import { dashboardConfigs } from "./config";
 
 function getStateEntityDeviceForEntityId(
   entityId: string,
@@ -57,8 +52,6 @@ export class DataManager {
     this.wsClient = wsClient;
     this.data = {
       areas: [],
-      floors: [],
-      users: [],
     };
   }
 
@@ -94,31 +87,7 @@ export class DataManager {
         for (const entityId of Object.keys(changes)) {
           if (entityId.startsWith(`${EntityTypes.light}.`)) {
             const change = changes[entityId];
-            const areaId = this.updateLightState(entityId, change["+"]);
-            continue;
-          }
-          for (const dashboard of dashboardConfigs) {
-            if (entityId === dashboard.carbonDioxideSensorEntityId) {
-              this.updateCarbonDioxideSensor(
-                dashboard.areaId,
-                changes[entityId]["+"],
-              );
-              continue;
-            }
-            if (entityId === dashboard.humiditySensorEntityId) {
-              this.updateHumiditySensor(
-                dashboard.areaId,
-                changes[entityId]["+"],
-              );
-              continue;
-            }
-            if (entityId === dashboard.temperatureSensorEntityId) {
-              this.updateTemperatureSensor(
-                dashboard.areaId,
-                changes[entityId]["+"],
-              );
-              continue;
-            }
+            this.updateLightState(entityId, change["+"]);
           }
         }
       }
@@ -142,11 +111,6 @@ export class DataManager {
         this.incomingData.entities,
         this.incomingData.entityStates,
       );
-      this.updateSensors(
-        this.incomingData.devices,
-        this.incomingData.entities,
-        this.incomingData.entityStates,
-      );
       this.incomingData.areas = null;
       this.incomingData.devices = null;
       this.incomingData.entities = null;
@@ -160,9 +124,6 @@ export class DataManager {
       const staleArea = staleAreas.find((a) => a.id === area.area_id);
       return {
         lights: [],
-        carbonDioxideSensor: null,
-        humiditySensor: null,
-        temperatureSensor: null,
         ...staleArea,
         id: area.area_id,
         name: area.name,
@@ -211,148 +172,6 @@ export class DataManager {
     }
   }
 
-  private updateSensors(
-    devices: HassDevice[],
-    entities: HassEntity[],
-    entityStates: Record<string, HassEntityState>,
-  ) {
-    for (const entityId of Object.keys(entityStates)) {
-      for (const dashboard of dashboardConfigs) {
-        const area = this.data.areas.find((a) => a.id === dashboard.areaId);
-        if (!area) {
-          throw new Error(`Dashboard area not found: ${dashboard.areaId}`);
-        }
-        if (entityId === dashboard.humiditySensorEntityId) {
-          const { state, device } = getStateEntityDeviceForEntityId(
-            entityId,
-            devices,
-            entities,
-            entityStates,
-          );
-          area.humiditySensor = {
-            areaId: area.id,
-            areaName: area.name,
-            deviceId: device.id,
-            deviceName: device.name,
-            entityId: entityId,
-            state: getNumericSensorState(state.s),
-            unitOfMeasurement: "%",
-          };
-          continue;
-        }
-        if (entityId === dashboard.temperatureSensorEntityId) {
-          const { state, device } = getStateEntityDeviceForEntityId(
-            entityId,
-            devices,
-            entities,
-            entityStates,
-          );
-          const unitOfMeasurement =
-            getTemperatureUnitOfMeasurement(state.a?.unit_of_measurement) ||
-            dashboard.temperatureUnitOfMeasurement;
-          const value = getNumericSensorState(state.s);
-          const temperatureValue = calcTemperatureValue(
-            value,
-            unitOfMeasurement,
-            dashboard.temperatureUnitOfMeasurement,
-          );
-          area.temperatureSensor = {
-            areaId: area.id,
-            areaName: area.name,
-            deviceId: device.id,
-            deviceName: device.name,
-            entityId: entityId,
-            state: temperatureValue,
-            unitOfMeasurement: unitOfMeasurement,
-          };
-          continue;
-        }
-        if (entityId === dashboard.carbonDioxideSensorEntityId) {
-          const { state, device } = getStateEntityDeviceForEntityId(
-            entityId,
-            devices,
-            entities,
-            entityStates,
-          );
-          area.carbonDioxideSensor = {
-            areaId: area.id,
-            areaName: area.name,
-            deviceId: device.id,
-            deviceName: device.name,
-            entityId: entityId,
-            state: getNumericSensorState(state.s),
-            unitOfMeasurement: "ppm",
-          };
-          continue;
-        }
-      }
-    }
-  }
-
-  updateCarbonDioxideSensor(areaId: string, state: HassEntityState) {
-    const area = this.data.areas.find((a) => a.id === areaId);
-    if (!area) {
-      throw new Error(`Area not found: ${areaId}`);
-    }
-    // console.log("Updating carbon dioxide sensor for area", areaId, state);
-    if (!area.carbonDioxideSensor) {
-      console.error("Carbon Dioxide Sensor not found for area", areaId);
-      return;
-    }
-    area.carbonDioxideSensor = {
-      ...area.carbonDioxideSensor,
-      state: getNumericSensorState(state.s),
-      unitOfMeasurement: "ppm",
-    };
-  }
-
-  updateHumiditySensor(areaId: string, state: HassEntityState) {
-    const area = this.data.areas.find((a) => a.id === areaId);
-    if (!area) {
-      throw new Error(`Area not found: ${areaId}`);
-    }
-    // console.log("Updating humidity sensor for area", areaId, state);
-    if (!area.humiditySensor) {
-      console.error("Humidity Sensor not found for area", areaId);
-      return;
-    }
-    area.humiditySensor = {
-      ...area.humiditySensor,
-      state: getNumericSensorState(state.s),
-      unitOfMeasurement: "%",
-    };
-  }
-
-  updateTemperatureSensor(areaId: string, state: HassEntityState) {
-    const dashboard = dashboardConfigs.find((d) => d.areaId === areaId);
-    if (!dashboard) {
-      throw new Error(`Dashboard not found for areaId: ${areaId}`);
-    }
-    const area = this.data.areas.find((a) => a.id === areaId);
-    if (!area) {
-      throw new Error(`Area not found: ${areaId}`);
-    }
-    // console.log("Updating temperature sensor for area", areaId, state);
-    if (!area.temperatureSensor) {
-      console.error("Temperature Sensor not found for area", areaId);
-      return;
-    }
-    const unitOfMeasurement =
-      getTemperatureUnitOfMeasurement(state.a?.unit_of_measurement) ||
-      dashboard.temperatureUnitOfMeasurement;
-    const value = getNumericSensorState(state.s);
-    const temperatureValue = calcTemperatureValue(
-      value,
-      unitOfMeasurement,
-      dashboard.temperatureUnitOfMeasurement,
-    );
-    area.temperatureSensor = {
-      ...area.temperatureSensor,
-      state: temperatureValue,
-      unitOfMeasurement: unitOfMeasurement,
-    };
-  }
-
   /**
    * @returns {string | null} areaId of the area where the light is located or null if not found
    */
@@ -394,63 +213,6 @@ export class DataManager {
       0,
     );
     return totalBrightness / lights.length;
-  }
-
-  getHumidityInsideReading(areaId: string) {
-    const area = this.data.areas.find((area) => area.id === areaId);
-    if (!area) {
-      throw new Error(`Area not found: ${areaId}`);
-    }
-    if (!area.humiditySensor) {
-      return null;
-    }
-    const str = area.humiditySensor.state;
-    if (str === "unavailable") {
-      return str;
-    }
-    return `${str} ${area.humiditySensor.unitOfMeasurement}`;
-  }
-
-  getTemperatureInsideReading(areaId: string) {
-    const area = this.data.areas.find((area) => area.id === areaId);
-    if (!area) {
-      throw new Error(`Area not found: ${areaId}`);
-    }
-    if (!area.temperatureSensor) {
-      return null;
-    }
-    const str = area.temperatureSensor.state;
-    if (str === "unavailable") {
-      return str;
-    }
-    return `${str} ${area.temperatureSensor.unitOfMeasurement}`;
-  }
-
-  getCarbonDioxideInsideReading(areaId: string) {
-    const area = this.data.areas.find((area) => area.id === areaId);
-    if (!area) {
-      throw new Error(`Area not found: ${areaId}`);
-    }
-    if (!area.carbonDioxideSensor) {
-      return null;
-    }
-    const str = area.carbonDioxideSensor.state;
-    if (str === "unavailable") {
-      return str;
-    }
-    return `${str} ${area.carbonDioxideSensor.unitOfMeasurement}`;
-  }
-
-  getCarbonDioxideDangerLevel(areaId: string) {
-    const reading = this.getCarbonDioxideInsideReading(areaId);
-    if (!reading || reading === "unavailable") {
-      return "unknown";
-    }
-    const value = parseInt(reading.split(" ")[0]);
-    if (value > 1000) {
-      return "danger";
-    }
-    return "safe";
   }
 
   turnOffLight(entityId: string) {

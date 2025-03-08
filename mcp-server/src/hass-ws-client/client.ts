@@ -59,18 +59,11 @@ const SERVER_MESSAGE_TYPES = {
  */
 const CLIENT_MESSAGE_TYPES = {
   AUTH: "auth",
-  SUBSCRIBE_EVENTS: "subscribe_events",
   SUBSCRIBE_ENTITIES: "subscribe_entities",
-  FIRE_EVENT: "fire_event",
   CALL_SERVICE: "call_service",
-  GET_PANELS: "get_panels",
-  GET_SERVICES: "get_services",
-  GET_CONFIG: "get_config",
   GET_AREA_REGISTRY: "config/area_registry/list",
   GET_DEVICE_REGISTRY: "config/device_registry/list",
   GET_ENTITY_REGISTRY: "config/entity_registry/list",
-  GET_DISCOVERY_INFO: "get_discovery_info",
-  GET_CAMERA_IMAGE: "camera_thumbnail",
 } as const;
 
 export type ClientMessageType =
