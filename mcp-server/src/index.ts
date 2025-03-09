@@ -27,14 +27,24 @@ const dataManager = new DataManager(hassClient);
 dataManager.start();
 await new Promise((resolve) => setTimeout(resolve, 2000));
 
-// Get list of available area IDs
-const availableAreaIds = dashboardConfigs
-  .map((config) => config.areaId)
-  .join(", ");
+async function handleLightControl(params: {
+  areaId: string;
+  state: "on" | "off";
+}) {
+  if (params.state === "on") {
+    await dataManager.turnOnAllLights(params.areaId);
+  } else {
+    await dataManager.turnOffAllLights(params.areaId);
+  }
+}
 
 // Define the light control schema
 const lightControlSchema = {
-  areaId: z.string().describe("The area ID of the light in Home Assistant (e.g., office, kitchen)"),
+  areaId: z
+    .string()
+    .describe(
+      "The area ID of the light in Home Assistant (e.g., office, kitchen)",
+    ),
   state: z.enum(["on", "off"]).describe("Whether to turn the light on or off"),
 } as const;
 
@@ -50,13 +60,7 @@ server.tool(
   "Control a light in Home Assistant (turn on/off)",
   lightControlSchema,
   async (params) => {
-    // Using stderr for logging to avoid interfering with stdout JSON communication
-    console.error(`Controlling lights in ${params.areaId}: ${params.state}`);
-    if (params.state === "on") {
-      await dataManager.turnOnAllLights(params.areaId);
-    } else {
-      await dataManager.turnOffAllLights(params.areaId);
-    }
+    await handleLightControl(params);
     return {
       content: [
         {
@@ -65,7 +69,7 @@ server.tool(
         },
       ],
     };
-  }
+  },
 );
 
 // Create transport and start server
@@ -73,4 +77,7 @@ const transport = new StdioServerTransport();
 await server.connect(transport);
 
 console.log("🏠 Home Assistant MCP Server Started!");
-console.log("Available areas:", availableAreaIds);
+console.log(
+  "Available areas:",
+  dashboardConfigs.map((config) => config.areaId),
+);

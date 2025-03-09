@@ -87,9 +87,9 @@ async function processCommand(command: string) {
   try {
     // Add user's command to history
     chatHistory.push({
-      role: 'user',
+      role: "user",
       content: command,
-    })
+    });
 
     const completion = await openAiClient.chat.completions.create({
       model: "gpt-4",
@@ -98,12 +98,12 @@ async function processCommand(command: string) {
     });
 
     const replyText = completion.choices[0].message.content;
-    if(replyText) {
+    if (replyText) {
       console.log("\n🤖 Assistant:", replyText);
     }
 
     const toolCalls = completion.choices[0].message.tool_calls;
-    if(toolCalls) {
+    if (toolCalls) {
       console.log("toolCalls", toolCalls);
     }
     if (toolCalls && toolCalls.length > 0) {
@@ -112,8 +112,8 @@ async function processCommand(command: string) {
         const params = JSON.parse(call.function.arguments);
         await handleLightControl(params);
 
-         // Add the assistant's message with tool calls to chat history
-         chatHistory.push({
+        // Add the assistant's message with tool calls to chat history
+        chatHistory.push({
           role: "assistant",
           content: replyText,
           tool_calls: toolCalls,
@@ -122,7 +122,7 @@ async function processCommand(command: string) {
         // Add the tool response to chat history
         const toolResponse: OpenAI.Chat.ChatCompletionMessageParam = {
           role: "tool",
-          content: 'Command executed successfully',
+          content: "Command executed successfully",
           tool_call_id: call.id,
         };
         chatHistory.push(toolResponse);
