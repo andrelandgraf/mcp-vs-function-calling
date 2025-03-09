@@ -65,36 +65,17 @@ const availableAreaIds = dashboardConfigs
   .join(", ");
 
 // Initialize chat history for OpenAI
-let chatHistory: OpenAI.Chat.ChatCompletionMessageParam[] = [
+const chatHistory: OpenAI.Chat.ChatCompletionMessageParam[] = [
   {
     role: "system",
     content: `Available area IDs in the system are: ${availableAreaIds}. If the user's request doesn't specify an area, ask them to specify one from this list.`,
   },
 ];
 
-function addToHistory(
-  role: 'user' | 'assistant' | 'error',
-  content: string,
-  toolCalls?: OpenAI.Chat.ChatCompletionMessage["tool_calls"],
-) {
-  // Also update the OpenAI chat history
-  const message: OpenAI.Chat.ChatCompletionMessageParam = {
-    role: role === "assistant" ? "assistant" : "user",
-    content,
-  };
-
-  if (toolCalls) {
-    (message as OpenAI.Chat.ChatCompletionMessage).tool_calls = toolCalls;
-  }
-
-  chatHistory.push(message);
-}
-
 async function handleLightControl(params: {
   areaId: string;
   state: "on" | "off";
 }) {
-  console.log("handleLightControl", params);
   if (params.state === "on") {
     await dataManager.turnOnAllLights(params.areaId);
   } else {
@@ -105,7 +86,10 @@ async function handleLightControl(params: {
 async function processCommand(command: string) {
   try {
     // Add user's command to history
-    addToHistory("user", command);
+    chatHistory.push({
+      role: 'user',
+      content: command,
+    })
 
     const completion = await openAiClient.chat.completions.create({
       model: "gpt-4",
@@ -113,37 +97,46 @@ async function processCommand(command: string) {
       tools: tools,
     });
 
+    const replyText = completion.choices[0].message.content;
+    if(replyText) {
+      console.log("\n🤖 Assistant:", replyText);
+    }
+
     const toolCalls = completion.choices[0].message.tool_calls;
-    console.log("toolCalls", toolCalls);
+    if(toolCalls) {
+      console.log("toolCalls", toolCalls);
+    }
     if (toolCalls && toolCalls.length > 0) {
       const call = toolCalls[0];
       if (call.function.name === "control_light") {
         const params = JSON.parse(call.function.arguments);
         await handleLightControl(params);
-        const successMessage = "Command executed successfully";
-        console.log("✅", successMessage);
 
-        // Add the assistant's message with tool calls
-        addToHistory("assistant", "", toolCalls);
+         // Add the assistant's message with tool calls to chat history
+         chatHistory.push({
+          role: "assistant",
+          content: replyText,
+          tool_calls: toolCalls,
+        });
 
-        // Add the tool response
+        // Add the tool response to chat history
         const toolResponse: OpenAI.Chat.ChatCompletionMessageParam = {
           role: "tool",
-          content: successMessage,
+          content: 'Command executed successfully',
           tool_call_id: call.id,
         };
         chatHistory.push(toolResponse);
       }
-    } else {
-      const aiResponse =
-        completion.choices[0].message.content || "No response from AI";
-      console.log("\n🤖 AI Response:", aiResponse);
-      addToHistory("assistant", aiResponse);
     }
   } catch (error) {
     const errorMessage = `Error: ${error instanceof Error ? error.message : "Unknown error occurred"}`;
-    console.error("Error processing command:", error);
-    addToHistory("error", errorMessage);
+    console.error("\nError processing command:", error);
+
+    // Add the error message to chat history
+    chatHistory.push({
+      role: "developer",
+      content: errorMessage,
+    });
   }
 }
 
