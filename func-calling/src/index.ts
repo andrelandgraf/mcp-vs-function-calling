@@ -72,7 +72,7 @@ const chatHistory: OpenAI.Chat.ChatCompletionMessageParam[] = [
   },
 ];
 
-async function handleLightControl(params: {
+async function controlLight(params: {
   areaId: string;
   state: "on" | "off";
 }) {
@@ -110,7 +110,7 @@ async function processCommand(command: string) {
       const call = toolCalls[0];
       if (call.function.name === "control_light") {
         const params = JSON.parse(call.function.arguments);
-        await handleLightControl(params);
+        await controlLight(params);
 
         // Add the assistant's message with tool calls to chat history
         chatHistory.push({

@@ -27,7 +27,7 @@ const dataManager = new DataManager(hassClient);
 dataManager.start();
 await new Promise((resolve) => setTimeout(resolve, 2000));
 
-async function handleLightControl(params: {
+async function controlLight(params: {
   areaId: string;
   state: "on" | "off";
 }) {
@@ -60,7 +60,7 @@ server.tool(
   "Control a light in Home Assistant (turn on/off)",
   lightControlSchema,
   async (params) => {
-    await handleLightControl(params);
+    await controlLight(params);
     return {
       content: [
         {
