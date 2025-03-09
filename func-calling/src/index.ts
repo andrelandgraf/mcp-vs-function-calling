@@ -64,24 +64,6 @@ const availableAreaIds = dashboardConfigs
   .map((config) => config.areaId)
   .join(", ");
 
-// Define types for our history system
-type InteractionType = "user" | "assistant" | "system" | "error";
-interface Interaction {
-  type: InteractionType;
-  content: string;
-  timestamp: Date;
-  toolCalls?: OpenAI.Chat.ChatCompletionMessage["tool_calls"];
-}
-
-// Initialize interaction history
-const interactionHistory: Interaction[] = [
-  {
-    type: "system",
-    content: `Available area IDs in the system are: ${availableAreaIds}. If the user's request doesn't specify an area, ask them to specify one from this list.`,
-    timestamp: new Date(),
-  },
-];
-
 // Initialize chat history for OpenAI
 let chatHistory: OpenAI.Chat.ChatCompletionMessageParam[] = [
   {
@@ -91,21 +73,13 @@ let chatHistory: OpenAI.Chat.ChatCompletionMessageParam[] = [
 ];
 
 function addToHistory(
-  type: InteractionType,
+  role: 'user' | 'assistant' | 'error',
   content: string,
   toolCalls?: OpenAI.Chat.ChatCompletionMessage["tool_calls"],
 ) {
-  const interaction: Interaction = {
-    type,
-    content,
-    timestamp: new Date(),
-    toolCalls,
-  };
-  interactionHistory.push(interaction);
-
   // Also update the OpenAI chat history
   const message: OpenAI.Chat.ChatCompletionMessageParam = {
-    role: type === "user" ? "user" : "assistant",
+    role: role === "assistant" ? "assistant" : "user",
     content,
   };
 
